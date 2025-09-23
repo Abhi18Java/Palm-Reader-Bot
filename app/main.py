@@ -7,10 +7,11 @@ app = FastAPI(title="AI Baba Palm Reader")
 
 @app.post("/predict", response_model=PalmResponse)
 def predict(req: PalmRequest):
-    # Step 1: read hand (or fake)
-    summary = summarize_hand(fake=req.fake)
-
-    # Step 2: generate AI baba prediction
-    prediction = generate_prediction(summary)
-
-    return PalmResponse(summary=summary, prediction=prediction)
+    summary, image_path = summarize_hand()
+    
+    if summary == "No hand detected":
+        prediction = "Please show your hand clearly to the camera"
+    else:
+        prediction = generate_prediction(summary)
+    
+    return PalmResponse(summary=summary, prediction=prediction, image_path=image_path)

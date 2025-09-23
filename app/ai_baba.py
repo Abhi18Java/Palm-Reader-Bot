@@ -2,6 +2,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 load_dotenv()
+import traceback
 
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -31,12 +32,14 @@ def generate_prediction(summary: str) -> str:
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Palm summary: {summary}"}   
+                {"role": "user", "content": f"Palm summary: {summary}"}
             ]
         )
+
         return response.choices[0].message.content.strip()
+
     except Exception as e:
-        import sys
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        print(f"Error occurred: {exc_type.__name__}, {exc_traceback.tb_frame.f_code.co_filename}, {exc_traceback.tb_lineno}")
-        return "Sorry, I couldn't generate a prediction at this time."
+        # Full traceback with line number & error type
+        error_details = "".join(traceback.format_exception_only(type(e), e)).strip()
+        print(f"[ERROR] generate_prediction failed: {error_details}")
+        return "⚠️ Sorry, I couldn't generate a prediction at this time."

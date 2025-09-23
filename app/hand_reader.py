@@ -1,7 +1,8 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import random
+import os
+from datetime import datetime
 
 mp_hands = mp.solutions.hands
 
@@ -29,29 +30,28 @@ def approx_life_line_length(landmarks):
     b = [landmarks[9].x, landmarks[9].y]
     return float(np.linalg.norm(np.array(a) - np.array(b)))
 
-def summarize_hand(fake=False):
-    if fake:
-        fingers = random.randint(0, 5)
-        openness = random.uniform(0.05, 0.18)
-        life_len = random.uniform(0.1, 0.22)
-        return f"Fake hand: {fingers} fingers, openness={openness:.3f}, life_line={life_len:.3f}"
-
-    cap = cv2.VideoCapture(0)  # Access webcam to capture hand images
+def summarize_hand():
+    # Create images directory
+    os.makedirs("../images", exist_ok=True)
+    
+    cap = cv2.VideoCapture(0)
     with mp_hands.Hands(max_num_hands=1) as hands:
         ret, frame = cap.read()
         if not ret:
             cap.release()
-            return "Fake hand: 3 fingers, openness=0.111, life_line=0.200"  # fallback
+            return "Camera error", None
+
+        # Save image with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        image_path = f"../images/hand_{timestamp}.jpg"
+        cv2.imwrite(image_path, frame)
 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(rgb)
         cap.release()
 
         if not results.multi_hand_landmarks:
-            fingers = random.randint(1, 5)
-            openness = random.uniform(0.1, 0.9)
-            life_len = random.uniform(0.2, 0.8)
-            return f"Fake hand (no detection): {fingers} fingers, openness={openness:.3f}, life_line={life_len:.3f}"
+            return "No hand detected", image_path
 
         landmarks = results.multi_hand_landmarks[0].landmark
         img_h, img_w, _ = frame.shape
@@ -59,4 +59,4 @@ def summarize_hand(fake=False):
         openness = palm_openness(landmarks)
         life_len = approx_life_line_length(landmarks)
 
-        return f"{fingers} fingers, openness={openness:.3f}, life_line={life_len:.3f}"
+        return f"{fingers} fingers, openness={openness:.3f}, life_line={life_len:.3f}", image_path
