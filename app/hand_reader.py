@@ -36,7 +36,7 @@ def summarize_hand(fake=False):
         life_len = random.uniform(0.1, 0.22)
         return f"Fake hand: {fingers} fingers, openness={openness:.3f}, life_line={life_len:.3f}"
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)  # Access webcam to capture hand images
     with mp_hands.Hands(max_num_hands=1) as hands:
         ret, frame = cap.read()
         if not ret:
@@ -48,7 +48,6 @@ def summarize_hand(fake=False):
         cap.release()
 
         if not results.multi_hand_landmarks:
-            # 👉 Instead of "No hand detected", return fake hand summary
             fingers = random.randint(1, 5)
             openness = random.uniform(0.1, 0.9)
             life_len = random.uniform(0.2, 0.8)
