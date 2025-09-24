@@ -1,0 +1,55 @@
+# Environment files
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Logs
+*.log
+
+# IDEs / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing / Coverage
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Mypy / Pylint / Coverage
+.mypy_cache/
+.pyre/
+.pytype/
+.dmypy.json
+.cache/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Frontend
+.bin/
+node_modules/
+dist/
+build/
+npm-debug.log*

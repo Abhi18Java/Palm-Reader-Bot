@@ -6,4 +6,7 @@ langchain
 openai
 pydantic
 mediapipe
-dotenv
+python-dotenv
+streamlit
+requests
+pillow
