@@ -1,10 +1,8 @@
+# app/schemas.py
 from pydantic import BaseModel
-
-class PalmRequest(BaseModel):
-    pass
+from typing import Optional
 
 class PalmResponse(BaseModel):
     summary: str
     prediction: str
-    image_path: str = None
-    image_path: str = None
+    image_path: Optional[str] = None
