@@ -1,0 +1,9 @@
+{
+  "name": "palm-reader-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@mediapipe/hands": "^0.5.1675469404",
+    "@mediapipe/drawing_utils": "^0.5.1675469404"
+  }
+}

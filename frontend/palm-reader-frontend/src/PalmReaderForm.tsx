@@ -1,4 +1,8 @@
+
 import React, { useRef, useState } from "react";
+import { Hands, HAND_CONNECTIONS } from "@mediapipe/hands";
+import type { Results } from "@mediapipe/hands";
+import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 
 export default function PalmReaderForm() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -32,7 +36,22 @@ export default function PalmReaderForm() {
     }
   };
 
-  // Start camera and auto-capture after 2 seconds
+  // Helper: Check if hand is open palm (all fingers extended)
+  function isOpenPalm(landmarks: any[]): boolean {
+    // Thumb: tip (4) is to the right of MCP (2) for right hand, left for left hand
+    // Fingers: tip (8,12,16,20) above pip (6,10,14,18) in y-axis
+    if (!landmarks || landmarks.length !== 21) return false;
+    // Thumb
+    const thumbOpen = landmarks[4].x < landmarks[3].x;
+    // Other fingers
+    const fingersOpen = [8, 12, 16, 20].every((tip, i) => {
+      const pip = tip - 2;
+      return landmarks[tip].y < landmarks[pip].y;
+    });
+    return thumbOpen && fingersOpen;
+  }
+
+  // Start camera and only capture when open palm is detected
   const handleReadPalm = async () => {
     setError("");
     setResult(null);
@@ -40,8 +59,13 @@ export default function PalmReaderForm() {
     setShowCamera(true);
     setLoading(true);
 
+    let stream: MediaStream | null = null;
+    let hands: Hands | null = null;
+    let animationId: number | null = null;
+    let detected = false;
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
@@ -54,23 +78,54 @@ export default function PalmReaderForm() {
         videoRef.current.onloadeddata = () => resolve(null);
       });
 
-      // Wait 2 seconds for user to show hand
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Setup MediaPipe Hands
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7,
+      });
 
-      // Capture frame
-      if (videoRef.current && canvasRef.current) {
+      hands.onResults((results: Results) => {
+        if (!videoRef.current || !canvasRef.current) return;
+        // Draw landmarks for feedback (optional)
+        const ctx = canvasRef.current.getContext("2d");
+        ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+          drawConnectors(ctx!, results.multiHandLandmarks[0], HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
+          drawLandmarks(ctx!, results.multiHandLandmarks[0], { color: '#FF0000', lineWidth: 1 });
+          // Check for open palm
+          if (isOpenPalm(results.multiHandLandmarks[0]) && !detected) {
+            detected = true;
+            // Capture frame
+            captureAndSend();
+          }
+        }
+      });
+
+      // Animation loop for hand detection
+      const detectLoop = async () => {
+        if (!videoRef.current) return;
+        await hands!.send({ image: videoRef.current });
+        if (!detected) animationId = requestAnimationFrame(detectLoop);
+      };
+
+      // Helper to capture and send
+      const captureAndSend = () => {
+        if (!videoRef.current || !canvasRef.current) return;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
         canvas.width = videoRef.current.videoWidth;
         canvas.height = videoRef.current.videoHeight;
         ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-
         // Stop camera
         const tracks = (videoRef.current.srcObject as MediaStream)?.getTracks();
         tracks?.forEach((track) => track.stop());
         videoRef.current.srcObject = null;
         setShowCamera(false);
-
         // Convert to blob and send to backend
         canvas.toBlob((blob) => {
           if (!blob) {
@@ -80,16 +135,19 @@ export default function PalmReaderForm() {
           }
           sendBlobToBackend(blob);
         }, "image/jpeg");
-      } else {
-        setError("Camera not ready.");
-        setLoading(false);
-        setShowCamera(false);
-      }
+      };
+
+      // Start detection loop
+      animationId = requestAnimationFrame(detectLoop);
+
     } catch (err) {
       console.error("Camera error:", err);
       setError("Failed to access camera.");
       setLoading(false);
       setShowCamera(false);
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
     }
   };
 
