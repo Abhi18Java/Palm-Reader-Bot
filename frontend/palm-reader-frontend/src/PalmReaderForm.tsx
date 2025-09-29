@@ -1,5 +1,6 @@
 
 import React, { useRef, useState } from "react";
+import bgMystic from "./assets/mystic-bg.png";
 import { Hands, HAND_CONNECTIONS } from "@mediapipe/hands";
 import type { Results } from "@mediapipe/hands";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
@@ -152,52 +153,109 @@ export default function PalmReaderForm() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFF0C4] p-4">
-      <div className="bg-[#3E0703] p-6 rounded-lg shadow-lg w-full max-w-md border-4 border-[#8C1007]">
-        <h2 className="text-2xl font-bold mb-4 text-[#FFF0C4] text-center">
-          Palm Reader
-        </h2>
-
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100vw",
+        backgroundImage: `url(${bgMystic})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div style={{ textAlign: "center", width: "100%", maxWidth: "600px" }}>
+        <h1 style={{
+          fontFamily: "serif",
+          fontWeight: 700,
+          fontSize: "3rem",
+          color: "#FFF1F1",
+          letterSpacing: "2px",
+          marginBottom: "2rem",
+          textShadow: "0 2px 16px #3B0270"
+        }}>
+          PALM READER
+        </h1>
+        {/* ...existing error display... */}
         {error && (
-          <div className="mb-4 p-2 bg-red-200 text-red-800 rounded text-center">
+          <div style={{
+            marginBottom: "1rem",
+            padding: "0.5rem",
+            background: "rgba(233,179,251,0.85)",
+            color: "#3B0270",
+            borderRadius: "0.5rem",
+            textAlign: "center"
+          }}>
             {error}
           </div>
         )}
-
-        {/* Live Camera */}
+        {/* ...existing camera and canvas... */}
         {showCamera && (
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full rounded-lg border-2 border-[#8C1007] mb-4"
+            style={{
+              width: "100%",
+              borderRadius: "0.75rem",
+              border: "2px solid #6F00FF",
+              marginBottom: "1rem"
+            }}
           />
         )}
-
         <canvas ref={canvasRef} className="hidden" />
-
+        {/* ...existing button, styled as gold gradient... */}
         {!showCamera && (
           <button
             onClick={handleReadPalm}
             disabled={loading}
-            className="w-full py-2 px-4 bg-[#8C1007] hover:bg-[#660B05] text-[#FFF0C4] font-bold rounded transition-colors duration-200 disabled:opacity-50 shadow-md"
+            style={{
+              width: "100%",
+              maxWidth: "340px",
+              padding: "0.75rem 1.5rem",
+              fontSize: "1.25rem",
+              fontWeight: "bold",
+              borderRadius: "2rem",
+              background: "linear-gradient(90deg, #E9B3FB 0%, #F7B977 100%)",
+              color: "#3B0270",
+              border: "none",
+              boxShadow: "0 2px 16px rgba(233,179,251,0.25)",
+              margin: "2rem auto 0 auto",
+              opacity: loading ? 0.5 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+              letterSpacing: "1px"
+            }}
           >
-            {loading ? "Reading..." : "Read My Palm"}
+            {loading ? "Reading..." : "READ MY PALM"}
           </button>
         )}
-
+        {/* ...existing image and result display... */}
         {imageUrl && (
-          <div className="mt-6 text-center">
+          <div style={{ marginTop: "2rem", textAlign: "center" }}>
             <img
               src={imageUrl}
               alt="Captured Hand"
-              className="mx-auto mb-4 rounded-lg border-2 border-[#8C1007] shadow-md"
+              style={{
+                display: "block",
+                margin: "0 auto 1rem auto",
+                borderRadius: "0.75rem",
+                border: "2px solid #6F00FF",
+                boxShadow: "0 2px 8px rgba(107,0,255,0.10)"
+              }}
             />
           </div>
         )}
-
         {result && (
-          <div className="mt-6 p-4 rounded bg-[#660B05] text-[#FFF0C4] text-center">
+          <div style={{
+            marginTop: "2rem",
+            padding: "1rem",
+            borderRadius: "0.5rem",
+            background: "rgba(233,179,251,0.85)",
+            color: "#3B0270",
+            textAlign: "center"
+          }}>
             {result}
           </div>
         )}
