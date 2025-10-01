@@ -1,66 +1,74 @@
-# app/main.py
 import os
-import logging
-from datetime import datetime
+import uvicorn
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from pathlib import Path
 
-from schemas import PalmResponse
-from hand_reader import process_hand_image
-from ai_baba import generate_prediction  # your existing file
+from image_processing import extract_landmarks
+from feature_extraction import extract_features
+from llm_roaster import generate_roast
 
-logger = logging.getLogger("uvicorn.error")
+# --- Config ---
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
-app = FastAPI(title="Palm Reader API")
+# --- FastAPI app ---
+app = FastAPI(title="Savage Baba Palm Reader")
 
-# allow your frontend origin(s)
+# Allow frontend (React)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:3000"],  # change if needed
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:3000"],  # set specific domain in prod
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=True,
 )
 
-# ensure directories exist
-os.makedirs("images", exist_ok=True)
-os.makedirs("uploads", exist_ok=True)
 
-# serve images (annotated) at /images/*
-app.mount("/images", StaticFiles(directory="images"), name="images")
-
-
-@app.post("/predict", response_model=PalmResponse)
+@app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    """
-    Expects a multipart/form-data upload (key: file).
-    Frontend should send the captured image as FormData.append('file', blob, 'hand.jpg')
-    """
     try:
-        # save incoming upload
-        contents = await file.read()
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        upload_filename = f"uploads/hand_upload_{ts}.jpg"
-        with open(upload_filename, "wb") as f:
-            f.write(contents)
+        # Save uploaded image
+        file_path = UPLOAD_DIR / file.filename
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
 
-        # process uploaded image (mediapipe + draw landmarks) -> returns summary, annotated_path
-        summary, annotated_path = process_hand_image(upload_filename)
+        print("Processing image for landmarks...")
+        # FIX: Unpack the tuple returned by extract_landmarks
+        landmarks, annotated_path = extract_landmarks(str(file_path))
+        print(f"Landmarks detected: {len(landmarks) if landmarks else 0}")
+        print(f"Annotated image saved at: {annotated_path}")
 
-        if summary == "No hand detected":
-            prediction_text = "Please show your hand clearly to the camera"
-        elif summary in ("Invalid image", None):
-            prediction_text = "Invalid image"
-        else:
-            # call your AI to generate the funny/savage prediction
-            try:
-                prediction_text = generate_prediction(summary)
-            except Exception as e:
-                logger.exception("AI generation failed")
-                prediction_text = "⚠️ Could not generate prediction right now."
+        if not landmarks:
+            return JSONResponse(
+                {"error": "No valid hand landmarks detected."}, status_code=400
+            )
 
-        return PalmResponse(summary=summary, prediction=prediction_text, image_path=annotated_path)
-    except Exception as exc:
-        logger.exception("Error in /predict")
-        return PalmResponse(summary="Error", prediction=str(exc), image_path=None)
+        print("Extracting features...")
+        features = extract_features(landmarks)
+        print("Features:", features)
+
+        print("Generating roast...")
+        prediction = generate_roast(features)
+        print("Prediction:", prediction)
+
+        return {
+            "prediction": prediction,
+            "features": features,
+            "image_path": str(file_path),
+            "annotated_image_path": annotated_path,  # Include annotated image path
+        }
+
+    except Exception as e:
+        import sys
+        import traceback
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        print(f"Error processing image: {e}")
+        print(f"Exception type: {exc_type}")
+        print(f"Full traceback:")
+        traceback.print_exc()
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
