@@ -17,6 +17,7 @@ export default function PalmReaderForm() {
 
   // ✅ Send blob to backend
   const sendBlobToBackend = async (blob: Blob) => {
+    console.log("Sending request to backend...");
     const formData = new FormData();
     formData.append("file", blob, "hand.jpg");
     try {
@@ -24,13 +25,15 @@ export default function PalmReaderForm() {
         method: "POST",
         body: formData,
       });
+      console.log("Response status:", response.status);
       if (!response.ok) throw new Error("API error");
       const data = await response.json();
+      console.log("Response data:", data);
       setResult(data.prediction);
       if (data.image_path) {
-        setImageUrl(
-          `http://127.0.0.1:8000/${data.image_path.replace("../", "")}`
-        );
+        const imageUrl = `http://127.0.0.1:8000${data.image_path}`;
+        console.log("Setting image URL:", imageUrl);
+        setImageUrl(imageUrl);
       }
     } catch (err) {
       console.error(err);
@@ -272,12 +275,15 @@ export default function PalmReaderForm() {
             <img
               src={imageUrl}
               alt="Captured Hand"
+              onLoad={() => console.log("Image loaded successfully")}
+              onError={(e) => console.log("Image failed to load:", e)}
               style={{
                 display: "block",
                 margin: "0 auto 1rem auto",
                 borderRadius: "0.75rem",
                 border: "2px solid #6F00FF",
                 boxShadow: "0 2px 8px rgba(107,0,255,0.1)",
+                maxWidth: "300px",
               }}
             />
           </div>

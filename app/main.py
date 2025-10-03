@@ -3,6 +3,7 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from image_processing import extract_landmarks
@@ -10,7 +11,7 @@ from feature_extraction import extract_features
 from llm_roaster import generate_roast
 
 # --- Config ---
-UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR = Path("images")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
 # --- FastAPI app ---
@@ -25,6 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount("/images", StaticFiles(directory=UPLOAD_DIR), name="images")
+
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
@@ -35,7 +38,6 @@ async def predict(file: UploadFile = File(...)):
             f.write(await file.read())
 
         print("Processing image for landmarks...")
-        # FIX: Unpack the tuple returned by extract_landmarks
         landmarks, annotated_path = extract_landmarks(str(file_path))
         print(f"Landmarks detected: {len(landmarks) if landmarks else 0}")
         print(f"Annotated image saved at: {annotated_path}")
@@ -53,11 +55,15 @@ async def predict(file: UploadFile = File(...)):
         prediction = generate_roast(features)
         print("Prediction:", prediction)
 
+        # Normalize paths for frontend
+        image_url = f"/images/{file.filename}"
+        annotated_url = f"/images/{Path(annotated_path).name}"
+
         return {
             "prediction": prediction,
             "features": features,
-            "image_path": str(file_path),
-            "annotated_image_path": annotated_path,  # Include annotated image path
+             "image_path": image_url,
+            # "annotated_image_path": annotated_url,
         }
 
     except Exception as e:
@@ -69,6 +75,7 @@ async def predict(file: UploadFile = File(...)):
         print(f"Full traceback:")
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
