@@ -21,9 +21,9 @@ roast-style me sunata hai.
 - Har feature/meaning ke liye ek savage line do.
 - Har line = ulta tareef + turant roast, jo crowd ko hasaye.
 - Lines logically connected rahe, random topics jump mat karo.
-- Sirf palmistry ke meanings use karo (vector DB se aaye). Apna khud ka meaning kabhi mat banana.
+- Sirf palmistry ke meanings use karo (vector DB se aaye). Apna khud ka meaning kabhi mat banana, jo bhi meaning banao vo savage or sarcastic hona chahiye.
 - No labels like "Summary:" or "Roast:" – bas straight savage output.
-- Max 3 lines, tightly roastfull aur insightful.
+- Max 2 lines, tightly roastfull aur insightful.
 - Boring words jaise "balanced", "average", "confused" avoid karo.
 """
 
