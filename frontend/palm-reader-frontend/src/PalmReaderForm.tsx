@@ -195,16 +195,49 @@ export default function PalmReaderForm() {
         justifyContent: "center",
       }}
     >
-      <div style={{ textAlign: "center", width: "100%", maxWidth: "600px" }}>
+      <div style={{ textAlign: "center", width: "100%", maxWidth: "600px", position: "relative" }}>
+        {/* Animated sparkles */}
+        <div style={{
+          position: "absolute",
+          top: "-40px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "120px",
+          height: "40px",
+          pointerEvents: "none",
+        }}>
+          <div style={{
+            position: "absolute",
+            left: "10px",
+            top: "10px",
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            background: "#FFD700",
+            boxShadow: "0 0 16px 8px #FFD700",
+            animation: "twinkle 1.2s infinite alternate"
+          }} />
+          <div style={{
+            position: "absolute",
+            left: "80px",
+            top: "20px",
+            width: "6px",
+            height: "6px",
+            borderRadius: "50%",
+            background: "#E9B3FB",
+            boxShadow: "0 0 12px 6px #E9B3FB",
+            animation: "twinkle 1.5s infinite alternate"
+          }} />
+        </div>
         <h1
           style={{
-            fontFamily: "serif",
+            fontFamily: "'UnifrakturCook', cursive, serif",
             fontWeight: 700,
-            fontSize: "3rem",
+            fontSize: "3.2rem",
             color: "#FFF1F1",
             letterSpacing: "2px",
             marginBottom: "2rem",
-            textShadow: "0 2px 16px #3B0270",
+            textShadow: "0 2px 24px #6F00FF, 0 0 8px #FFD700",
           }}
         >
           PALM READER
