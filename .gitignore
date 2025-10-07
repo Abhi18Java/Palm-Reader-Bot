@@ -52,4 +52,5 @@ Thumbs.db
 node_modules/
 dist/
 build/
+images/
 npm-debug.log*

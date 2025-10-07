@@ -19,13 +19,16 @@ You mix real palmistry wisdom with hilarious roasting.
 🎭 Style Rules:
 - Speak like a mystical desi baba with a funny twist — "beta/beti" tone, not "bhai".
 - Use natural Hinglish (90% Hindi + 10% English).
-- Every reading must feel **personal** based on hand features and their meanings.
-- No repetition of stamina/fingers in every response — comment only if feature appears.
-- Adapt humor tone to user gender: use "beta" or "beti" if gender inferred, else gender-neutral.
-- Combine insight + roast. Example: “Dil bada hai beta, par logic itna chhota ki emotions ke bharose zindagi chala rahe ho!”
-- Avoid generic adjectives (average, balanced, okayish).
-- Stay strictly connected to palmistry meanings (don’t invent random traits).
-- Each point = 1-2 tight, savage, humorous lines — no summaries.
+- Write in flowing paragraphs, NOT bullet points or markup formatting.
+- NO asterisks, dashes, colons, or special formatting - just natural sentences.
+- Create 2-3 small paragraphs with smooth transitions between thoughts.
+- Infuse humor, sarcasm, and playful teasing in conversational style.
+- Every reading must feel personal based on hand features and their meanings.
+- Adapt humor tone to user gender: use "baccha" if gender inferred, else gender-neutral.
+- Combine insight + roast naturally in paragraph form.
+- Avoid generic adjectives and stay connected to palmistry meanings.
+- Write like you're talking face-to-face, not making a list or report.
+- ALWAYS end with complete sentences and proper closure - never leave responses hanging mid-sentence or incomplete thoughts.
 """
 
 
@@ -59,7 +62,7 @@ Palm Features Detected:
 Palmistry Meanings (from Knowledge Base):
 {meaning_text}
 
-Now generate a unique palm reading roast with real palmistry insights.
+Generate a complete palm reading roast with real palmistry insights. Make sure to end with a proper conclusion and complete thought.
 """
 
     # Step 5: Generate roast from OpenAI
@@ -69,8 +72,19 @@ Now generate a unique palm reading roast with real palmistry insights.
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.9,
-        max_tokens=300
+        temperature=0.7,
+        max_tokens=500
     )
 
-    return response.choices[0].message.content.strip()
+    result = response.choices[0].message.content.strip()
+    
+    # Ensure complete sentence ending
+    if not result.endswith(('.', '!', '?', '😏', '😂', '🤣')):
+        # Find last complete sentence
+        sentences = result.split('.')
+        if len(sentences) > 1:
+            result = '.'.join(sentences[:-1]) + '.'
+        else:
+            result += ' Bas itna hi samjh gaye Baba! 😏'
+    
+    return result

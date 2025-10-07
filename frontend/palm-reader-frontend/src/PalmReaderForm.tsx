@@ -37,21 +37,30 @@ export default function PalmReaderForm() {
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to get prediction.");
+      setError("Baba kuch samajh nahi paaye beta, haath dhang se dikhaiye! 😏");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Detect open palm
+  // ✅ Detect open palm (more flexible)
   function isOpenPalm(landmarks: any[]): boolean {
     if (!landmarks || landmarks.length !== 21) return false;
-    const thumbOpen = landmarks[4].x < landmarks[3].x; // basic thumb check
-    const fingersOpen = [8, 12, 16, 20].every((tip) => {
+
+    let extendedCount = 0;
+
+    if (Math.abs(landmarks[4].x - landmarks[3].x) > 0.02) {
+      extendedCount++;
+    }
+
+    [8, 12, 16, 20].forEach((tip) => {
       const pip = tip - 2;
-      return landmarks[tip].y < landmarks[pip].y;
+      if (landmarks[tip].y < landmarks[pip].y + 0.01) {
+        extendedCount++;
+      }
     });
-    return thumbOpen && fingersOpen;
+
+    return extendedCount >= 3;
   }
 
   // ✅ Capture snapshot
@@ -63,13 +72,11 @@ export default function PalmReaderForm() {
     canvas.height = videoRef.current.videoHeight;
     ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
-    // Stop camera
     const tracks = (videoRef.current.srcObject as MediaStream)?.getTracks();
     tracks?.forEach((track) => track.stop());
     videoRef.current.srcObject = null;
     setShowCamera(false);
 
-    // Convert to blob and send
     canvas.toBlob((blob) => {
       if (!blob) {
         setError("Failed to capture image.");
@@ -80,7 +87,7 @@ export default function PalmReaderForm() {
     }, "image/jpeg");
   };
 
-  // ✅ Start countdown before capture
+  // ✅ Countdown
   const startCountdown = () => {
     let timeLeft = 3;
     setCountdown(timeLeft);
@@ -109,6 +116,7 @@ export default function PalmReaderForm() {
     let hands: Hands | null = null;
     let animationId: number | null = null;
     let detected = false;
+    let stableFrames = 0;
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -117,23 +125,21 @@ export default function PalmReaderForm() {
         videoRef.current.play();
       }
 
-      // Wait for video ready
       await new Promise((resolve) => {
         if (!videoRef.current) return resolve(null);
         if (videoRef.current.readyState >= 3) return resolve(null);
         videoRef.current.onloadeddata = () => resolve(null);
       });
 
-      // Setup MediaPipe Hands
       hands = new Hands({
         locateFile: (file) =>
           `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
       });
       hands.setOptions({
         maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.7,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
       });
 
       hands.onResults((results: Results) => {
@@ -157,8 +163,13 @@ export default function PalmReaderForm() {
           });
 
           if (isOpenPalm(results.multiHandLandmarks[0]) && !detected) {
-            detected = true;
-            startCountdown();
+            stableFrames++;
+            if (stableFrames >= 2) {
+              detected = true;
+              startCountdown();
+            }
+          } else {
+            stableFrames = 0;
           }
         }
       });
@@ -193,42 +204,18 @@ export default function PalmReaderForm() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        padding: "2rem",
       }}
     >
-      <div style={{ textAlign: "center", width: "100%", maxWidth: "600px", position: "relative" }}>
-        {/* Animated sparkles */}
-        <div style={{
-          position: "absolute",
-          top: "-40px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "120px",
-          height: "40px",
-          pointerEvents: "none",
-        }}>
-          <div style={{
-            position: "absolute",
-            left: "10px",
-            top: "10px",
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            background: "#FFD700",
-            boxShadow: "0 0 16px 8px #FFD700",
-            animation: "twinkle 1.2s infinite alternate"
-          }} />
-          <div style={{
-            position: "absolute",
-            left: "80px",
-            top: "20px",
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            background: "#E9B3FB",
-            boxShadow: "0 0 12px 6px #E9B3FB",
-            animation: "twinkle 1.5s infinite alternate"
-          }} />
-        </div>
+      <div
+        style={{
+          textAlign: "center",
+          width: "100%",
+          maxWidth: "650px",
+          position: "relative",
+        }}
+      >
+        {/* Title */}
         <h1
           style={{
             fontFamily: "'UnifrakturCook', cursive, serif",
@@ -242,17 +229,19 @@ export default function PalmReaderForm() {
         >
           PALM READER
         </h1>
+        <h2>
 
-        {/* Error Display */}
+        </h2>
+
+        {/* Error */}
         {error && (
           <div
             style={{
               marginBottom: "1rem",
-              padding: "0.5rem",
+              padding: "0.75rem",
               background: "rgba(233,179,251,0.85)",
               color: "#3B0270",
               borderRadius: "0.5rem",
-              textAlign: "center",
             }}
           >
             {error}
@@ -283,22 +272,22 @@ export default function PalmReaderForm() {
             style={{
               width: "100%",
               maxWidth: "340px",
-              padding: "0.75rem 1.5rem",
+              padding: "0.9rem 1.5rem",
               fontSize: "1.25rem",
               fontWeight: "bold",
               borderRadius: "2rem",
-              background:
-                "linear-gradient(90deg, #E9B3FB 0%, #F7B977 100%)",
+              background: "linear-gradient(90deg, #E9B3FB 0%, #F7B977 100%)",
               color: "#3B0270",
               border: "none",
               boxShadow: "0 2px 16px rgba(233,179,251,0.25)",
               margin: "2rem auto 0 auto",
-              opacity: loading ? 0.5 : 1,
+              opacity: loading ? 0.6 : 1,
               cursor: loading ? "not-allowed" : "pointer",
               letterSpacing: "1px",
+              transition: "all 0.3s ease",
             }}
           >
-            {loading ? "Reading..." : "READ MY PALM"}
+            {loading ? "Reading..." : "हाथ देख बाबा"}
           </button>
         )}
 
@@ -308,35 +297,65 @@ export default function PalmReaderForm() {
             <img
               src={imageUrl}
               alt="Captured Hand"
-              onLoad={() => console.log("Image loaded successfully")}
-              onError={(e) => console.log("Image failed to load:", e)}
               style={{
                 display: "block",
-                margin: "0 auto 1rem auto",
-                borderRadius: "0.75rem",
-                border: "2px solid #6F00FF",
-                boxShadow: "0 2px 8px rgba(107,0,255,0.1)",
-                maxWidth: "300px",
+                margin: "0 auto 1.5rem auto",
+                borderRadius: "1rem",
+                border: "3px solid #6F00FF",
+                boxShadow: "0 4px 16px rgba(107,0,255,0.25)",
+                maxWidth: "450px",    // ⬅️ increased from 300px to 450px
+                width: "90%",         // ⬅️ scales nicely on smaller screens
               }}
             />
           </div>
         )}
 
-        {/* Prediction */}
+        {/* Prediction Result Box */}
         {result && (
           <div
             style={{
-              marginTop: "2rem",
-              padding: "1rem",
-              borderRadius: "0.5rem",
-              background: "rgba(233,179,251,0.85)",
-              color: "#3B0270",
-              textAlign: "center",
+              marginTop: "2.5rem",
+              padding: "2rem",
+              borderRadius: "1rem",
+              background: "#2a1e4c",
+              border: "1px solid rgba(255, 215, 0, 0.4)",
+              color: "#FFF1F1",
+              textAlign: "left",
+              lineHeight: "1.8",
+              fontSize: "1.05rem",
+              boxShadow: "0 4px 24px rgba(111, 0, 255, 0.25)",
+              fontFamily: "'Poppins', sans-serif",
+              whiteSpace: "pre-line",
+              letterSpacing: "0.3px",
+              maxHeight: "60vh",
+              overflowY: "auto",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              width: "90vw",
+              maxWidth: "1000px",
+              marginLeft: "auto",
+              marginRight: "auto",
+              position: "relative",
+              left: "50%",
+              transform: "translateX(-50%)",
             }}
           >
-            {result}
+            <h2
+              style={{
+                fontFamily: "'UnifrakturCook', cursive",
+                color: "#FFD700",
+                fontSize: "1.8rem",
+                marginBottom: "1rem",
+                textAlign: "center",
+                textShadow: "0 0 12px #FFD700",
+              }}
+            >
+              🔮 Baba’s Reading 🔮
+            </h2>
+            <div style={{ padding: "0 0.75rem" }}>{result}</div>
           </div>
         )}
+
       </div>
 
       {/* Countdown Overlay */}

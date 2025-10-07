@@ -62,8 +62,7 @@ async def predict(file: UploadFile = File(...)):
         return {
             "prediction": prediction,
             "features": features,
-             "image_path": image_url,
-            # "annotated_image_path": annotated_url,
+            "image_path": annotated_url,
         }
 
     except Exception as e:
